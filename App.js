@@ -3,6 +3,35 @@ import fetch from 'node-fetch';
 const MAGIC_EDEN_PROGRAM_ID = 'M2mx93ekt1fmXSVkTrUL9xVFHkmME8HTUi5Cyc5aF7K';
 const SOLANA_RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com';
 
+async function fetchTransactions(url) {
+  const requestBody = {
+    method: 'getConfirmedSignaturesForAddress2',
+    params: [MAGIC_EDEN_PROGRAM_ID, { limit: 1000 }],
+    jsonrpc: '2.0',
+    id: 'magic-eden',
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  const data = await response.json();
+
+  if (data.error) {
+    console.error('API error:', data.error);
+    throw new Error('API error: ' + data.error.message);
+  }
+
+  console.log('API response:', data);
+
+  return data.result.transactions;
+}
+
+
 async function getMagicEdenTransactions(minutes) {
   const now = new Date();
   const startTime = new Date(now.getTime() - minutes * 60 * 1000).toISOString();
@@ -48,7 +77,13 @@ async function getProjectInfo(transactionSignature) {
 }
 
 async function main() {
-  const transactions = await getMagicEdenTransactions(5);
+  const endTime = new Date();
+  const startTime = new Date(endTime.getTime() - 5 * 60 * 1000);
+  const url = `https://api.mainnet-beta.solana.com/v2/transactions?before=${endTime.toISOString()}&after=${startTime.toISOString()}&limit=1000`;
+
+  const transactions = await fetchTransactions(url);
+  console.log('Fetched transactions:', transactions);
+
 
   const projectStats = new Map();
 
